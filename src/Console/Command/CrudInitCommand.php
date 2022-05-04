@@ -1,6 +1,6 @@
 <?php
 
-namespace Cadoteu\EntityToFormBundle\Command;
+namespace Cadoteu\EntityToFormBundle\Console\Command;
 
 
 use Symfony\Component\Console\Command\Command;
