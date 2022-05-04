@@ -7,8 +7,7 @@
         "symfony/http-kernel": "^5.3|^6.0",
         "symfony/framework-bundle": "^5.3|^6.0",
         "symfony/dependency-injection": "^5.3|^6.0",
-        "symfony/console": "^5.3|^6.0",
-        "cadot.eu/parser-docblock-bundle": "0"
+        "symfony/console": "^5.3|^6.0"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.0.0",
