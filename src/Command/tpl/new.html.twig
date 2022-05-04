@@ -1,0 +1,52 @@
+{% extends '¤extends¤' %}
+{% set route = path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')) %}
+{% set action = path(app.request.attributes.get('_route'), app.request.attributes.get('_route_params')) | split('/') |
+last %}
+{#BLOCK#}
+{% block title %}
+	{% if action=='new' %}Création
+		{% elseif action=='copy' %}Duplication
+		{% elseif action=='edit' %}Edition
+	{% endif %}
+	¤Entity¤
+{% endblock %}
+
+{% block body %}
+	<input
+	type="hidden" id="TBuploadmax" value="{{TBuploadmax()}}">
+	{#BLOCK#}
+	<div class="\" col-12 text-center\"">
+		<h1>
+			{% if action=='new' %}Créer
+				{% elseif action=='copy' %}Dupliquer
+				{% elseif action=='edit' %}Editer
+			{% endif %}
+			¤Entity¤
+			<span
+				class="text-right">{# <h5>taille maxi d'envoie:<span id="TBuploadmax">{{TBuploadmax()}}</span>Mo</h5> #}
+			</span>
+		</h1>
+		{#BLOCK#}
+	</div>
+	{#BLOCK#}
+	<div class="col-12" data-turbo="false">
+		{{ form_start(form) }}
+		{#BLOCK#}
+		¤form_rows¤
+		{#BLOCK#}
+		<button class="btn btn-primary" id="bouton_submit" type="submit">
+			{% if action=='new' %}Créer
+				{% else %}Mettre à jour
+			{% endif %}
+		</button>
+		<a href="{{ path('¤entity¤_index') }}">
+			<button class="btn btn-secondary" type="button">Revenir à la liste</button>
+		</a>
+		<input
+		type="hidden" id="token" value="{{ csrf_token('upload')}}"/>
+		{#BLOCK#}
+		{{ form_end(form) }}
+		{#BLOCK#}
+	</div>
+	{#BLOCK#}
+{% endblock %}

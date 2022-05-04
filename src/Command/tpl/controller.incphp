@@ -1,0 +1,245 @@
+<?php
+//BLOCK
+namespace  App\Controller¤sdir¤;
+//BLOCK
+use DateTime;
+use App\Entity\¤Entity¤;
+use App\Form\¤ssdir¤¤Entity¤Type;
+use App\Repository\¤Entity¤Repository;
+use Doctrine\ORM\EntityManagerInterface;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\Routing\Annotation\Route;
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\File\UploadedFile;
+use App\Service\FileUploader;
+//BLOCK
+/**
+ * @Route("¤partie¤/¤entity¤")
+ */ class ¤Entity¤Controller extends AbstractController
+{
+    //BLOCK
+    protected $em;
+    public function __construct(
+        EntityManagerInterface $em
+        //BLOCK
+    ) {
+        $this->em = $em;
+        //BLOCK
+    }
+    //BLOCK
+    /* -------------------------------------------------------------------------- */
+    /*                                    INDEX                                   */
+    /* -------------------------------------------------------------------------- */
+    /**
+     * @Route("/", name="¤entity¤_index", methods={"GET"})
+     */
+    public function index(¤Entity¤Repository $¤entity¤Repository, Request $request): Response
+    {
+        //BLOCK
+        $page = $request->query->get("page") != null ? $request->query->get("page") : 1;
+        $maxi = count($¤entity¤Repository->findBy(['deletedAt' => null]));
+        if ($maxi > 10 && $page * 10  > $maxi) $page = round($maxi / 10, 0);
+        $tri = $request->query->get("tri") != null ? [$request->query->get("tri") => $request->query->get("ordre") ?: 'ASC'] : [¤ordre¤];
+        $¤entity¤s = $¤entity¤Repository->findBy(['deletedAt' => null], $tri, 10, ($page - 1) * 10);
+        //BLOCK
+        return $this->render('¤sdir¤/¤entity¤/index.html.twig', [
+            /*¤index_render¤*/
+            '¤entity¤s' => $¤entity¤s,
+            'pagesMaxi' => $maxi
+        ]);
+        //BLOCK
+    }
+    //BLOCK
+    /* -------------------------------------------------------------------------- */
+    /*                                   DELETED                                  */
+    /* -------------------------------------------------------------------------- */
+    /**
+     * @Route("/deleted", name="¤entity¤_deleted", methods={"GET"})
+     */
+    public function deleted(¤Entity¤Repository $¤entity¤Repository, Request $request): Response
+    {
+        //BLOCK
+        $tab¤Entity¤s = [];
+        foreach ($¤entity¤Repository->findAll() as $¤entity¤) {
+            if ($¤entity¤->getDeletedAt() != null) $tab¤Entity¤s[] = $¤entity¤;
+        }
+        $page = $request->query->get("page") != null ? $request->query->get("page") : 1;
+        $maxi = count($tab¤Entity¤s);
+        if ($page * 10  > $maxi) $page = round($maxi / 10, 0);
+        $tri = $request->query->get("tri") != null ? [$request->query->get("tri") => $request->query->get("ordre") ?: 'ASC'] : [¤ordre¤];
+        $¤entity¤s = array_slice($tab¤Entity¤s, ($page - 1) * 10, 10);
+
+
+        //BLOCK
+        return $this->render('¤sdir¤/¤entity¤/index.html.twig', [
+            //BLOCK
+            '¤entity¤s' => $tab¤Entity¤s,
+            'pagesMaxi' => $maxi
+        ]);
+    }
+    //BLOCK
+    /* -------------------------------------------------------------------------- */
+    /*                                    ETAT                                    */
+    /* -------------------------------------------------------------------------- */
+    /**
+     * @Route("/etat/{id}/{type}/{valeur}", name="¤entity¤_etat", methods={"GET"})
+     */
+    public function etat(¤Entity¤ $¤entity¤, $type = null, $valeur = null): Response
+    {
+        //BLOCK
+        if ($type) {
+            $method = 'set' . $type;
+            $¤entity¤->$method($valeur);
+            $this->em->persist($¤entity¤);
+            $this->em->flush();
+        }
+        //BLOCK
+        return $this->redirectToRoute('¤entity¤_index');
+    }
+    //BLOCK
+
+    /* -------------------------------------------------------------------------- */
+    /*                                NEW AND EDIT                                */
+    /* -------------------------------------------------------------------------- */
+    /**
+     * @Route("/new", name="¤entity¤_new", methods={"GET","POST"})
+     *  @Route("/{id}/edit", name="¤entity¤_edit", methods={"GET","POST"})
+     */
+    public function new(Request $request, FileUploader $fileUploader, ¤Entity¤ $¤entity¤ = null, EntityManagerInterface $em): Response
+    {
+        //BLOCK
+        if (!$¤entity¤) $¤entity¤ = new ¤Entity¤(); //for new
+        //BLOCK
+        $form = $this->createForm(¤Entity¤Type::class, $¤entity¤);
+        //BLOCK
+        $form->handleRequest($request);
+        //BLOCK
+        if ($form->isSubmitted() && $form->isValid()) {
+            //BLOCK
+            if ($request->files->get('¤entity¤'))
+                foreach ($request->files->get('¤entity¤') as $name => $data) {
+                    $fichier = $form->get($name)->getData();
+                    //BLOCK
+                    if ($fichier) {
+                        //BLOCK
+                        if (get_class($fichier) == 'Doctrine\Common\Collections\ArrayCollection' || get_class($fichier) == "Doctrine\ORM\PersistentCollection") {
+                            $fichierName = [];
+                            foreach ($fichier as $num => $fiche) {
+                                if ($data[$num][key($data[$num])] != null) {
+                                    $class = explode('\\', get_class($fiche));
+                                    $fichierName = $fileUploader->upload($data[$num][key($data[$num])], "¤entity¤/$name/" . key($data[$num]) . '/');
+                                    $functionE = 'set' . ucfirst(key($data[$num]));
+                                    $fiche->$functionE($fichierName);
+                                    $function = 'add' . end($class);
+                                    $¤entity¤->$function($fiche);
+                                }
+                            }
+                        } else {
+                            $fichierName = $fileUploader->upload($fichier, "¤entity¤/$name/");
+                            $function = 'set' . $name;
+                            $¤entity¤->$function($fichierName);
+                        }
+                        //BLOCK
+                    }
+                    //BLOCK
+                }
+            //BLOCK
+            /* -------------------------------- language -------------------------------- */
+            // $list = $request->request->get('¤entity¤');
+            // $tab = [];
+            // foreach ($list as $name => $data) {
+            //     if (strpos($name, '_LANGUAGE_') !== false) {
+            //         $exp = explode('_LANGUAGE_', $name);
+            //         $tab[$exp[0]][$exp[1]] = $data;
+            //     }
+            // }
+            // foreach ($tab as $name => $value) {
+            //     $set = 'set' . ucfirst($name);
+            //     $¤entity¤->$set(json_encode($value));
+            // }
+            //BLOCK
+            //TODO: par listener
+            if ($¤entity¤->getcreatedAt() == 'null') $¤entity¤->setCreatedAt(new DateTime('now'));
+            $¤entity¤->setUpdatedAt(new DateTime('now'));
+            $em->persist($¤entity¤);
+            $em->flush();
+            //BLOCK
+            return $this->redirectToRoute('¤entity¤_index');
+        }
+        //BLOCK
+        return $this->render('¤sdir¤/¤entity¤/new.html.twig', [
+            //BLOCK
+            '¤entity¤' => $¤entity¤,
+            'form' => $form->createView()
+        ]);
+    }
+    //BLOCK
+    /* -------------------------------------------------------------------------- */
+    /*                                    SHOW                                    */
+    /* -------------------------------------------------------------------------- */
+    /**
+     * @Route("/{id}", name="¤entity¤_show", methods={"GET"})
+     */
+    public function show(¤Entity¤ $¤entity¤): Response
+    {
+        //BLOCK
+
+    }
+    //BLOCK
+    /* -------------------------------------------------------------------------- */
+    /*                                    CLONE                                   */
+    /* -------------------------------------------------------------------------- */
+    /**
+     * @Route("/{id}/clone", name="¤entity¤_clone", methods={"GET","POST"})
+     */
+    public function clone(¤Entity¤ $¤entity¤c, EntityManagerInterface $em): Response
+    {
+        //BLOCK
+        $¤entity¤ = clone $¤entity¤c;
+        if (property_exists($¤entity¤, 'slug')) {
+            $sfunc = 'set' . ucfirst('¤fieldslug¤');
+            $gfunc = 'get' . ucfirst('¤fieldslug¤');
+            $¤entity¤->$sfunc($¤entity¤->$gfunc() . uniqid());
+            $¤entity¤->setslug();
+        }
+        $em = $this->getDoctrine()->getManager();
+        $¤entity¤->setCreatedAt(new DateTime('now'));
+        $em->persist($¤entity¤);
+        $em->flush();
+        //BLOCK
+        return $this->redirectToRoute('¤entity¤_index');
+    }
+    //BLOCK
+    /* -------------------------------------------------------------------------- */
+    /*                                   DELETE                                   */
+    /* -------------------------------------------------------------------------- */
+    /**
+     * @Route("/{id}", name="¤entity¤_delete", methods={"POST"})
+     */
+    public function delete(Request $request, ¤Entity¤ $¤entity¤, EntityManagerInterface $em): Response
+    {
+        //BLOCK
+        if ($this->isCsrfTokenValid('delete' . $¤entity¤->getId(), $request->request->get('_token'))) {
+            //BLOCK
+            if ($request->request->has('delete_delete')) {
+                //BLOCK
+                $em->remove($¤entity¤);
+            }
+            if ($request->request->has('delete_restore'))
+                $¤entity¤->setDeletedAt(null);
+            if ($request->request->has('delete_softdelete'))
+                $¤entity¤->setDeletedAt(new DateTime('now'));
+            //BLOCK
+            $em->flush();
+        }
+        //BLOCK
+        if ($request->request->has('delete_softdelete'))
+            return $this->redirectToRoute('¤entity¤_index');
+        else
+            return $this->redirectToRoute('¤entity¤_deleted');
+    }
+    //BLOCK
+}
+//BLOCK

@@ -1,0 +1,29 @@
+<?php
+//BLOCK
+namespace App\Form¤sdir¤;
+
+use App\Entity\¤Entity¤;
+use Symfony\Component\Form\AbstractType;
+use Symfony\Component\Form\FormBuilderInterface;
+use Symfony\Component\OptionsResolver\OptionsResolver;
+//¤uses¤
+//BLOCK
+class ¤Entity¤Type extends AbstractType
+{
+    //BLOCK
+    public function buildForm(FormBuilderInterface $builder, array $AtypeOption)
+    {
+        //BLOCK
+        //¤adds¤;
+        //BLOCK
+    }
+
+    public function configureOptions(OptionsResolver $resolver)
+    {
+        //BLOCK
+        $resolver->setDefaults([
+            'data_class' => ¤Entity¤::class,
+            //BLOCK
+        ]);
+    }
+}
