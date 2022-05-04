@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Cadoteu\ParserDocblockBundle\ParserDocblock;
 
 #[AsCommand(
     name: 'crud:generate:controller',
@@ -40,37 +41,20 @@ class CrudMakeControllerCommand extends Command
         /* ------------------------- initialisation variable ------------------------ */
         $entity = strTolower($entity);
         $Entity = ucfirst($entity);
-        $th = []; //contient les th pour l'entete du tableau
-        $IDOptions = null; //contient les options d'ID
         /* ----------------------- on récupère tous les champs ---------------------- */
         $class = 'App\Entity\\' . $Entity;
-        $r = new \ReflectionClass(new $class()); //property of class
-        /* --------------------------------- entete --------------------------------- */
-        $uses = []; //content uses
-        //variable
-        $adds = [];
-        foreach ($r->getProperties() as $property) {
-            $prop = new EntityToForm($property);
-            $name = $prop->getName();
-            $alias = $prop->getAlias($property);
-            $type = $prop->getType($property);
-            //on prend l'alias en priorité
-            $select[$name] = $alias != '' ? $alias : $type;
-
-            $properties[$name] = $property;
-            //récupération des options
-            $options[$name] = $prop->getOptions($property);
-        }
-
-        dd($field);
-        $html = CrudHelper::twigParser(file_get_contents($fileController), [
+        $docs = new ParserDocblock($entity);
+        $options = $docs->getOptions();
+        $fieldslug = $docs->getArgumentOfAttributes('slug', "Gedmo\Mapping\Annotation\Slug", 'fields')[0];
+        $fileController = __DIR__ . '/tpl/controller.incphp';
+        $html = CrudInitCommand::twigParser(file_get_contents($fileController), [
+            'partie' => "/admin//",
             'fieldslug' => $fieldslug,
-            'partie' => $this->attrs['PARTIE'],
-            'entity' => $this->entity,
-            'Entity' => ucFirst($this->entity),
-            'extends' => $this->attrs['EXTEND'],
-            'sdir' => $this->attrs['SDIR'] ? '\\' . $this->attrs['SDIR'] : '',
-            'ssdir' => $this->attrs['SDIR'] ? $this->attrs['SDIR'] . '\\' : '',
+            'entity' => $entity,
+            'Entity' => $Entity,
+            'extends' => '/admin/base.html.twig',
+            'sdir' =>  '',
+            'ssdir' => '',
             'ordre' => isset($options['id']['ORDRE']) ? $options['id']['ORDRE'] : null,
         ]);
         /** @var string $html */
@@ -78,10 +62,10 @@ class CrudMakeControllerCommand extends Command
         //open model controller
         $fileController = __DIR__ . '/tpl/controller.incphp';
         if (!file_Exists($fileController)) {
-            throw new Exception("Le fichier " . $fileController . ' est introuvable', 1);;
+            throw new Exception("Le fichier " . $fileController . ' est introuvable', 1);
         }
         //create file
-        CrudHelper::updateFile("src/Controller/" . $this->attrs['SDIR'] . "/" . ucfirst($this->entity) . 'Controller.php', $controller, $input->getOption('force'));
+        CrudInitCommand::updateFile("src/Controller/" . $Entity . 'Controller.php', $blocks, $input->getOption('force'));
         return Command::SUCCESS;
     }
 

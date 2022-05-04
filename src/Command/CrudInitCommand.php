@@ -2,17 +2,20 @@
 
 namespace Cadoteu\EntityToFormBundle\Command;
 
-
 use Symfony\Component\Console\Command\Command;
-use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Symfony\Component\Console\Question\Question;
+use Symfony\Component\Console\Input\ArgvInput;
+use Symfony\Component\Console\Output\ConsoleOutput;
+use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputOption;
-use Cadoteu\ParserDocblockBundle\ParserDocblock;
-use Symfony\Component\Config\Definition\Exception\Exception;
+use Exception;
+
+
+
 
 #[AsCommand(
     name: 'crud:init',
@@ -20,6 +23,7 @@ use Symfony\Component\Config\Definition\Exception\Exception;
 )]
 class CrudInitCommand extends Command
 {
+    protected static $defaultName = 'crud:init';
     protected function configure(): void
     {
         $this
@@ -41,15 +45,6 @@ class CrudInitCommand extends Command
 
         //secure $entity in minus
         $entity = strTolower($entity);
-        $class = 'App\Entity\\' . ucfirst($entity);
-        $r = new \ReflectionClass(new $class()); //property of class
-        /* --------------------------------- création de champs --------------------------------- */
-        foreach ($r->getProperties() as $property) {
-            $name = $property->getName();
-            //récupération des options
-            $prop = new ParserDocblock($property);
-            $options[$name] = $prop->getOptions($property);
-        }
         $sdir = '';
         //création des répertoires
         @mkdir("src/Form/$sdir/", 0777, true);

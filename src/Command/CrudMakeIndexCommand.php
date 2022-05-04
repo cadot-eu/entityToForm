@@ -11,6 +11,7 @@ use Symfony\Component\Console\Input\InputOption;
 use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
+use Cadoteu\ParserDocblockBundle\ParserDocblock;
 
 #[AsCommand(
     name: 'crud:generate:index',
@@ -40,16 +41,8 @@ class CrudMakeIndexCommand extends Command
         $entity = strTolower($entity);
         $Entity = ucfirst($entity);
         $th = []; //contient les th pour l'entete du tableau
-        $IDOptions = null; //contient les options d'ID
-        /* ----------------------- on récupère tous les champs ---------------------- */
-        $class = 'App\Entity\\' . $Entity;
-        $r = new \ReflectionClass(new $class()); //property of class
-        /* --------------------------------- entete --------------------------------- */
-        foreach ($r->getProperties() as $property) {
-            $name = $property->getName();
-            //récupération des options
-            $prop = new EntityToForm($property);
-            $options = $prop->getOptions($property);
+        $docs = new ParserDocblock($entity);
+        foreach ($docs->getOptions() as $name => $options) {
             //creation des th
             if (!isset($options['tpl']['no_index']) && $name != 'deletedAt' && $name != 'createdAt' && $name != 'updatedAt') {
                 $th[] = '<th><a class="btn btn-outline-primary {{ app.request.query.get("tri") == "' . $name . '" ? \'active\' }} " href=\'?tri=' . $name . '&&ordre={{ app.request.query.get("ordre")=="DESC" ? "ASC":"DESC" }}\'>' . $name . '</a></th>';
@@ -71,16 +64,8 @@ class CrudMakeIndexCommand extends Command
         EOT;
         /* ---------------------------------- body ---------------------------------- */
         $tableauChoice = '';
-        foreach ($r->getProperties() as $property) {
+        foreach ($docs->getOptions() as $name => $options) {
             $class = []; //contient les class à insérer
-            $prop = new EntityToForm($property);
-            $alias = $prop->getAlias($property);
-            $type = $prop->getType($property);
-            //on prend l'alias en priorité
-            $select = $alias != '' ? $alias : $type;
-            //récupération des options
-            $options = $prop->getOptions($property);
-            $name = $prop->getName();
             /* ------------------------- creation des idoptions ------------------------- */
             if ($name == 'id') {
                 $IDOptions = $options;
@@ -93,7 +78,7 @@ class CrudMakeIndexCommand extends Command
             $twig = isset($options['twig']) ? '|' . implode('|', array_keys($options['twig'])) : '|striptags|u.truncate(20, "...")';
             /* ----------------------------- création des td ---------------------------- */
             if (!isset($options['tpl']['no_index'])) {
-                switch ($select) {
+                switch ($select = $docs->getSelect($name)) {
                     case 'generatedvalue': //id
                         /* Checking if the twig option is set, if it is, it will implode the array keys
                        of the twig option and add a pipe to the beginning of the string. */
@@ -101,6 +86,7 @@ class CrudMakeIndexCommand extends Command
                         $td[] = '<td class="my-auto ' . implode(' ', $class) . '" > {{' . "$Entity.$name$twig" . '}}' . "\n</td>";;
                         break;
                     case 'string':
+                    case 'simple':
                         $td[] = '<td class="my-auto ' . implode(' ', $class) . '" title="{{' . "$Entity.$name" . '}}"> {{' . "$Entity.$name$twig" . '}}' . "\n</td>";
                         break;
                     case 'integer':
@@ -109,7 +95,7 @@ class CrudMakeIndexCommand extends Command
                     case 'text':
                         $td[] = '<td class="my-auto ' . implode(' ', $class) . '" title="{{' . "$Entity.$name" . '}}"> {{' . "$Entity.$name$twig" . '}}' . "\n</td>";
                         break;
-                    case 'file':
+                    case 'image':
                         $tdtemp = '<td class="my-auto ' . implode(' ', $class) . '" title="{{' . "$Entity.$name" . '}}"> ';
                         if (isset($options['tpl']) && isset($options['tpl']['index_FileImage'])) {
                             //retourne une miniature
@@ -154,7 +140,7 @@ class CrudMakeIndexCommand extends Command
                     case 'entity':
                         //field for show
                         $return = isset($options['label']) ? array_keys($options['label'])[0] : 'id';
-                        if ($type == 'manytomany'  || $type == 'onetomany') {
+                        if ($docs->getType($name) == 'manytomany'  || $docs->getType($name) == 'onetomany') {
                             //for separate field
                             $separation = isset($options['separation']) ? $options['separation'] : ';';
                             $td[] = '<td class="my-auto">' . "{% for " . $name . "_item in " . $Entity . ".$name %}\n{{" . $name . "_item.$return$twig}}{{loop.last?'':'$separation'}}\n{% endfor %}" . "\n</td>";
@@ -206,7 +192,7 @@ class CrudMakeIndexCommand extends Command
         if (!file_Exists($fileIndex)) {
             throw new Exception("Le fichier " . $fileIndex . " est introuvable", 1);
         }
-        $html = CrudHelper::twigParser(file_get_contents($fileIndex), [
+        $html = CrudInitCommand::twigParser(file_get_contents($fileIndex), [
             'hide' => $ifhide,
             'rows' => implode("\n", $td),
             'entete' => implode("\n", $th),
@@ -220,7 +206,7 @@ class CrudMakeIndexCommand extends Command
         ]);
         /** @var string $html */
         $blocks = (explode('{#BLOCK#}', $html));
-        CrudHelper::updateFile("templates/" . $entity . '/index.html.twig', $blocks, $input->getOption('force'));
+        CrudInitCommand::updateFile("templates/" . $entity . '/index.html.twig', $blocks, $input->getOption('force'));
         return Command::SUCCESS;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Cadoteu\EntityToFormBundle\Command;
 
+use Cadoteu\ParserDocblockBundle\ParserDocblock;
 use Symfony\Component\Console\Attribute\AsCommand;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
@@ -41,7 +42,7 @@ class CrudMakeNewCommand extends Command
         /* ------------------------- initialisation variable ------------------------ */
         $entity = strTolower($entity);
         $Entity = ucfirst($entity);
-        $docs = new EntityToForm($entity);
+        $docs = new ParserDocblock($entity);
         /* --------------------------------- entete --------------------------------- */
         $uses = []; //content uses
         //variable

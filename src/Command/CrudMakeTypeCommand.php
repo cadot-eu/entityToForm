@@ -11,6 +11,7 @@ use Symfony\Component\Console\Output\OutputInterface;
 use Symfony\Component\Console\Question\Question;
 use Symfony\Component\Console\Style\SymfonyStyle;
 use Cadoteu\EntityToFormBundle\EntityToForm;
+use Cadoteu\ParserDocblockBundle\ParserDocblock;
 
 #[AsCommand(
     name: 'crud:generate:type',
@@ -40,7 +41,7 @@ class CrudMakeTypeCommand extends Command
         /* ------------------------- initialisation variable ------------------------ */
         $entity = strTolower($entity);
         $Entity = ucfirst($entity);
-        $docs = new EntityToForm($entity);
+        $docs = new ParserDocblock($entity);
         /* --------------------------------- entete --------------------------------- */
         $uses = []; //content uses
         //variable
